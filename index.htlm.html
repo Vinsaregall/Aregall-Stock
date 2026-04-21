@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aregall — Producció, Vendes i Stock</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:14px;color:#111;background:#e8e8e8;padding:8px}
+.wrapper{max-width:1020px;margin:0 auto;border:1px solid #bbb;border-radius:10px;overflow:hidden;background:#fff}
+.tab-bar{display:flex;background:#111;overflow-x:auto}
+.tab-btn{flex:1;min-width:75px;padding:11px 4px;border:none;background:transparent;color:#888;font-size:12px;font-weight:500;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
+.tab-btn:hover:not(.ap):not(.av):not(.as):not(.ag){color:#ccc}
+.tab-btn.ap{color:#fff;border-bottom-color:#4A8C5C}
+.tab-btn.av{color:#fff;border-bottom-color:#C53030}
+.tab-btn.as{color:#fff;border-bottom-color:#B7791F}
+.tab-btn.ag{color:#fff;border-bottom-color:#1E40AF}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.sync-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;font-size:12px;color:#1E40AF}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#22C55E;display:inline-block;flex-shrink:0}
+.sync-dot.off{background:#EF4444}
+.sync-dot.spin{background:#F59E0B;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.top-fields{display:grid;gap:8px;padding:12px;border-bottom:1px solid #ddd;background:#f9f9f9}
+.c3{grid-template-columns:1fr 1fr 1fr}
+.c4{grid-template-columns:1fr 1fr 1fr 1fr}
+.field-group label{font-size:11px;color:#666;display:block;margin-bottom:3px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.field-group input{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#111;font-size:14px}
+.cat-tabs{display:flex;gap:4px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid #ddd;background:#f9f9f9;-webkit-overflow-scrolling:touch}
+.cat-tab{white-space:nowrap;padding:6px 12px;border-radius:6px;border:1px solid #ccc;background:#fff;color:#666;font-size:12px;cursor:pointer}
+.cat-tab:hover:not(.active){background:#eee}
+.search-bar{padding:8px 12px;border-bottom:1px solid #ddd}
+.search-bar input{width:100%;padding:9px 12px;border:1px solid #ccc;border-radius:6px;font-size:14px}
+.table-wrap{overflow-x:auto;max-height:45vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+thead th{position:sticky;top:0;font-size:11px;font-weight:500;padding:8px 6px;text-align:left;z-index:2;text-transform:uppercase;letter-spacing:.3px;color:#fff}
+tbody tr{border-bottom:1px solid #eee}
+tbody tr:nth-child(even){background:#fafafa}
+td{padding:7px 6px;font-size:12px;vertical-align:middle}
+td.codi{font-family:monospace;font-size:10px;color:#666;word-break:break-all}
+td.desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qty-input{width:62px;padding:6px 4px;border:1px solid #ccc;border-radius:6px;font-size:15px;text-align:center;background:#fff}
+.lot-input,.obs-input{width:70px;padding:6px 4px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#fff}
+.footer-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-top:1px solid #ddd;background:#f9f9f9;flex-wrap:wrap;gap:8px}
+.stat{font-size:12px;color:#666}
+.stat span{font-weight:500;color:#111}
+.btn-sec{padding:9px 12px;background:transparent;color:#666;border:1px solid #ccc;border-radius:6px;font-size:13px;cursor:pointer}
+.btn-sec:hover{background:#eee}
+.empty-msg{text-align:center;padding:30px;color:#888;font-size:13px}
+.bdg{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:500}
+.prod .cat-tab.active{background:#2E5D3B;color:#fff;border-color:#2E5D3B}
+.prod thead th{background:#2E5D3B}
+.prod tbody tr:hover{background:#E8F4EA}
+.prod .qty-input.filled{border-color:#1D9E75;background:#E1F5EE;font-weight:500;color:#0F6E56}
+.prod .qty-input:focus{border-color:#2E5D3B;outline:none}
+.prod .bdg{background:#E1F5EE;color:#0F6E56}
+.btn-p{padding:9px 14px;background:#2E5D3B;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-p:hover{background:#4A8C5C}
+.btn-p:disabled{background:#aaa;cursor:not-allowed}
+.ven .cat-tab.active{background:#7D1F1F;color:#fff;border-color:#7D1F1F}
+.ven thead th{background:#7D1F1F}
+.ven tbody tr:hover{background:#FFF5F5}
+.ven .qty-input.filled{border-color:#C53030;background:#FFF5F5;font-weight:500;color:#7D1F1F}
+.ven .qty-input:focus{border-color:#7D1F1F;outline:none}
+.ven .bdg{background:#FFF5F5;color:#C53030}
+.btn-v{padding:9px 14px;background:#7D1F1F;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-v:hover{background:#9B2C2C}
+.btn-v:disabled{background:#aaa;cursor:not-allowed}
+.stk .cat-tab.active{background:#744210;color:#fff;border-color:#744210}
+.stk thead th{background:#744210}
+.stk tbody tr:hover{background:#FFFBF0}
+.sbar{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid #ddd;background:#FFFBF0;flex-wrap:wrap}
+.sc{background:#fff;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:11px;color:#666;min-width:80px;text-align:center;flex:1}
+.sc b{display:block;font-size:18px;font-weight:500;color:#111;margin-bottom:2px}
+.sc.ok b{color:#2E5D3B}
+.sc.wn b{color:#B7791F}
+.sc.dg b{color:#C53030}
+tr.rz td{background:#FEF2F2!important;color:#991B1B;font-weight:500}
+tr.rd td{background:#FFF5F5!important;color:#7D1F1F;font-weight:500}
+tr.rw td{background:#FFFBF0!important;color:#744210}
+.pill{display:inline-block;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:500}
+.pk{background:#E1F5EE;color:#0F6E56}
+.pw{background:#FEFCE8;color:#854D0E}
+.pd{background:#FFF5F5;color:#991B1B}
+.pz{background:#FEE2E2;color:#991B1B}
+.si{width:58px;padding:5px 4px;border:1px solid #ccc;border-radius:5px;font-size:13px;text-align:center;background:#fff}
+.btn-rst{padding:9px 12px;background:transparent;color:#C53030;border:1px solid #C53030;border-radius:6px;font-size:13px;cursor:pointer}
+.btn-rst:hover{background:#FFF5F5}
+.btn-s{padding:9px 14px;background:#744210;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-s:hover{background:#92400E}
+.gp-section{padding:12px;border-bottom:1px solid #ddd}
+.gp-section h3{font-size:12px;font-weight:500;color:#1E40AF;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.gp-form{display:grid;grid-template-columns:1fr 2fr 1.2fr auto;gap:8px;align-items:end}
+.gp-form input,.gp-form select{padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;width:100%}
+.btn-add{padding:9px 16px;background:#1E40AF;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn-add:hover{background:#1D4ED8}
+.gp-table-wrap{overflow-x:auto;max-height:40vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.gp-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.gp-table thead th{position:sticky;top:0;background:#1E3A8A;color:#fff;font-size:10px;font-weight:500;padding:8px 6px;text-align:left;text-transform:uppercase;letter-spacing:.3px}
+.gp-table tbody tr{border-bottom:1px solid #eee}
+.gp-table tbody tr:nth-child(even){background:#F8FAFF}
+.gp-table tbody tr:hover{background:#EFF6FF}
+.gp-table td{padding:6px 6px;font-size:12px;vertical-align:middle}
+.gp-table td.mono{font-family:monospace;font-size:10px;color:#666;word-break:break-all}
+.gp-edit-input{width:100%;padding:4px 6px;border:1px solid #93C5FD;border-radius:4px;font-size:12px;background:#EFF6FF}
+.btn-del{padding:4px 8px;background:transparent;color:#C53030;border:1px solid #C53030;border-radius:5px;font-size:11px;cursor:pointer}
+.btn-del:hover{background:#FFF5F5}
+.btn-save-row{padding:4px 8px;background:#1E40AF;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer}
+.btn-save-row:hover{background:#1D4ED8}
+.cat-badge{display:inline-block;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:500;background:#EFF6FF;color:#1E40AF}
+.gp-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-top:1px solid #ddd;background:#F8FAFF;flex-wrap:wrap;gap:8px}
+@media(max-width:600px){
+  body{padding:0}
+  .wrapper{border-radius:0;border-left:none;border-right:none;min-height:100vh}
+  .tab-btn{font-size:10px;padding:10px 3px}
+  .top-fields.c3{grid-template-columns:1fr 1fr}
+  .top-fields.c4{grid-template-columns:1fr 1fr}
+  .footer-bar{flex-direction:column;align-items:stretch}
+  .footer-bar>div{display:flex;flex-direction:column;gap:6px}
+  .btn-p,.btn-v,.btn-s,.btn-sec,.btn-rst,.btn-add{width:100%;text-align:center;padding:13px}
+  .table-wrap{max-height:50vh}
+  .sbar{gap:5px}
+  .sc{min-width:60px;padding:6px 4px;font-size:10px}
+  .sc b{font-size:15px}
+  .gp-form{grid-template-columns:1fr 1fr}
+  .qty-input{width:58px;font-size:16px}
+  .lot-input,.obs-input{width:62px}
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<div class="tab-bar">
+  <button class="tab-btn ap" id="btn-prod" onclick="sw('prod')">Producció diària</button>
+  <button class="tab-btn" id="btn-ven" onclick="sw('ven')">Vendes diàries</button>
+  <button class="tab-btn" id="btn-stock" onclick="sw('stock')">Control d'estoc</button>
+  <button class="tab-btn" id="btn-prod2" onclick="sw('prod2')">Gestio productes</button>
+</div>
+
+<div class="sync-bar">
+  <span class="sync-dot spin" id="sync-dot"></span>
+  <span id="sync-msg">Connectant amb el servidor...</span>
+</div>
+
+<!-- PRODUCCIO -->
+<div class="tab-content prod active" id="tab-prod">
+  <div class="top-fields c3">
+    <div class="field-group"><label>Data</label><input type="date" id="p-data"></div>
+    <div class="field-group"><label>Nº Ordre</label><input type="text" id="p-ordre" placeholder="ex: 26104"></div>
+    <div class="field-group"><label>Responsable</label><input type="text" id="p-resp" placeholder="Nom"></div>
+  </div>
+  <div class="cat-tabs" id="p-ct"></div>
+  <div class="search-bar"><input type="text" id="p-srch" placeholder="Cerca per codi o descripció..."></div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th style="width:30px">#</th><th style="width:125px">Codi</th><th>Descripció</th>
+      <th style="width:85px">Quantitat</th><th style="width:85px">Lot</th><th style="width:85px">Observ.</th>
+    </tr></thead><tbody id="p-tb"></tbody></table>
+    <div class="empty-msg" id="p-em" style="display:none">Cap referència trobada</div>
+  </div>
+  <div class="footer-bar">
+    <div style="display:flex;gap:16px">
+      <div class="stat">Línies: <span id="p-sl">0</span></div>
+      <div class="stat">Total: <span id="p-su">0</span> unitats</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sec" onclick="clr('p')">Netejar</button>
+      <button class="btn-sec" id="btn-csv-p" onclick="expForm('p')">Descarregar CSV</button>
+      <button class="btn-p" id="btn-apply-p" onclick="apply('p')">Aplicar al stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- VENDES -->
+<div class="tab-content ven" id="tab-ven">
+  <div class="top-fields c4">
+    <div class="field-group"><label>Data</label><input type="date" id="v-data"></div>
+    <div class="field-group"><label>Nº Albarà</label><input type="text" id="v-albara" placeholder="ex: 26104"></div>
+    <div class="field-group"><label>Client</label><input type="text" id="v-client" placeholder="Nom del client"></div>
+    <div class="field-group"><label>Comercial</label><input type="text" id="v-comercial" placeholder="Nom"></div>
+  </div>
+  <div class="cat-tabs" id="v-ct"></div>
+  <div class="search-bar"><input type="text" id="v-srch" placeholder="Cerca per codi o descripció..."></div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th style="width:30px">#</th><th style="width:125px">Codi</th><th>Descripció</th>
+      <th style="width:85px">Quantitat</th><th style="width:100px">Observ.</th><th style="width:75px">Estoc act.</th>
+    </tr></thead><tbody id="v-tb"></tbody></table>
+    <div class="empty-msg" id="v-em" style="display:none">Cap referència trobada</div>
+  </div>
+  <div class="footer-bar">
+    <div style="display:flex;gap:16px">
+      <div class="stat">Línies: <span id="v-sl">0</span></div>
+      <div class="stat">Total: <span id="v-su">0</span> unitats</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sec" onclick="clr('v')">Netejar</button>
+      <button class="btn-sec" id="btn-csv-v" onclick="expForm('v')">Descarregar CSV</button>
+      <button class="btn-v" id="btn-apply-v" onclick="apply('v')">Aplicar al stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK -->
+<div class="tab-content stk" id="tab-stock">
+  <div class="sbar" id="s-sum"></div>
+  <div class="cat-tabs" id="s-ct"></div>
+  <div class="search-bar"><input type="text" id="s-srch" placeholder="Cerca per codi o descripció..."></div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th style="width:30px">#</th><th style="width:125px">Codi</th><th>Descripció</th>
+      <th style="width:68px">Mínim</th><th style="width:80px">Stock actual</th><th style="width:110px">Estat</th>
+    </tr></thead><tbody id="s-tb"></tbody></table>
+    <div class="empty-msg" id="s-em" style="display:none">Cap referència trobada</div>
+  </div>
+  <div class="footer-bar">
+    <div style="font-size:11px;color:#888">Stock sincronitzat en temps real a tots els dispositius. Pots editar manualment qualsevol valor.</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-rst" onclick="rst()">Reiniciar tot a 0</button>
+      <button class="btn-s" onclick="expStock()">Descarregar stock (CSV)</button>
+    </div>
+  </div>
+</div>
+<!-- GESTIO PRODUCTES -->
+<div class="tab-content" id="tab-prod2">
+  <div class="gp-section">
+    <h3>Afegir nou producte</h3>
+    <div class="gp-form">
+      <div>
+        <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Codi</label>
+        <input type="text" id="np-codi" placeholder="ex: GBOX5BL15">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Descripció</label>
+        <input type="text" id="np-desc" placeholder="ex: Box 5l. Blanc 15%vol.">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Categoria</label>
+        <select id="np-cat"></select>
+      </div>
+      <div>
+        <button class="btn-add" onclick="addProduct()">+ Afegir</button>
+      </div>
+    </div>
+    <div id="np-msg" style="font-size:12px;margin-top:8px;color:#666"></div>
+  </div>
+
+  <div style="padding:10px 16px;border-bottom:1px solid #ddd;background:#f9f9f9;display:flex;gap:8px;align-items:center">
+    <input type="text" id="gp-srch" placeholder="Cerca producte..." style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-size:13px;flex:1">
+    <select id="gp-cat-filter" style="padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px">
+      <option value="">Totes les categories</option>
+    </select>
+    <span style="font-size:12px;color:#666">Total: <b id="gp-total">0</b> productes</span>
+  </div>
+
+  <div class="gp-table-wrap">
+    <table class="gp-table">
+      <thead><tr>
+        <th style="width:130px">Codi</th>
+        <th>Descripció</th>
+        <th style="width:150px">Categoria</th>
+        <th style="width:75px">Stock</th>
+        <th style="width:110px">Accions</th>
+      </tr></thead>
+      <tbody id="gp-tb"></tbody>
+    </table>
+    <div class="empty-msg" id="gp-em" style="display:none">Cap producte trobat</div>
+  </div>
+
+  <div class="gp-footer">
+    <div style="font-size:11px;color:#888">Els canvis es sincronitzen a tots els dispositius. El codi no es pot modificar un cop creat.</div>
+    <div style="font-size:12px;color:#1E40AF;font-weight:500" id="gp-sync-msg"></div>
+  </div>
+</div>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB0u0U6072Eryzi-plA-xQ9X1Y6Q8VG1Zs",
+  authDomain: "stock-vins-aregall.firebaseapp.com",
+  projectId: "stock-vins-aregall",
+  storageBucket: "stock-vins-aregall.firebasestorage.app",
+  messagingSenderId: "723825732001",
+  appId: "1:723825732001:web:8510ab56090f5ba3cbc3e0"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const STOCK_DOC = doc(db, "aregall", "stock");
+
+const CATS={
+  "Bag in Box 3L":[["GBOX30024","Bag in box 3l. Negre 14.9%vol."],["GBOX3N12XSG","Bag in box 3l. Negre 12%vol."],["GBOX3VERDEJO","Bag in box 3l. Verdejo"]],
+  "Bag in Box 5L":[["GBOX5B11D","Box 5l. Blanc D 11%"],["GBOX5B11X","Box 5l. Blanc P. 11%"],["GBOX5B13C","Box 5l. Blanc C. 13%"],["GBOX5B13X","Box 5l. Blanc P. 13%"],["GBOX5N11X","Box 5l. Negre 11%"],["GBOX5N13MBBV","Box 5l. Negre M. 13% BBV"],["GBOX5N13X","Box 5l. Negre 13%"],["GBOX5N14X","Box 5l. Negre 14%"],["GBOX5NCS","Box 5l. Cabernet Sauvignon"],["GBOX5NS","Box 5l. Sirah"],["GBOX5R11X","Box 5l. Rosat 11%"],["GBOX5R13S","Box 5l. Rosat Sel. 13%"],["GBOX5VERDEJO","Box 5l. Verdejo"],["GBOX50024","Box 5l. Negre 14.9%"],["GBOX50025","Box 5l. BBV Negre Dolc 14.5%"],["GVBOX5MCT","Box 5l. Moscatell Alexandria"]],
+  "Bag in Box 15L":[["GBOX15","Box 15l. Negre 11%"],["GBOX150023","Box 15l. Negre 14.9%"],["GBOX150024","Box 15l. Negre Semi 14.9%"],["GBOX15GB","Box 15l. Garnatxa Blanca 13%"],["GBOX15NS","Box 15l. Sirah"],["GBOX15VERDEJO","Box 15l. Verdejo"],["GBKB148009","Box 15l. Vi Turbio"],["GBOXAROMR","Box 15l. Arom. R. 15%"],["GBOXAROMO","Box 15l. Arom. O. 15%"],["GBOXB12X","Box 15l. Blanc 12%"],["GBOXBB11X","Box BEA 15l. Blanc Pal-lid 11%"],["GBOXBB13C","Box BEA 15l. Blanc C. 13%"],["GBOXBB13X","Box BEA 15l. Blanc Pal-lid 13%"],["GBOXBN11X","Box BEA 15l. Negre 11%"],["GBOXBN12X","Box BEA 15l. Negre 12%"],["GBOXBN13MBBV","Box BEA 15l. Negre M. 13% BBV"],["GBOXBN14X","Box BEA 15l. Negre 14%"],["GBOXBR11X","Box BEA 15l. Rosat 11%"],["GBOXBR13X","Box BEA 15l. Rosat 13%"],["GBOXN13X","Box 15l. Negre 13%"],["GBOXR13X","Box 15l. Rosat Sel. 13%"],["GVBOXMCT","Box 15l. Moscatell Alexandria"]],
+  "Bag in Box 20L":[["GBOX20B13C","Box 20l. Blanc C. 13%"],["GBOX20N11X","Box 20l. Negre 11%"],["GBOX20N13X","Box 20l. Negre 13%"],["GBOX20N14X","Box 20l. Negre 14%"]],
+  "Bidons 12L":[["GB120003","Bido 12L Blanc 13%"],["GB120006","Bido 12L Blanc 14%"],["GB120023","Bido 12L Negre 14.9%"],["GB120025","Bido 12L BBV Negre Dolc 14.5%"],["GB12N13X","Bido 12L Negre 13%"],["GVB120031","Bido 12L Moscatell Alexandria"]],
+  "Bidons 20L":[["GB200023","Bido 20l. Negre 14.9% Marcet"],["GB20B13X","Bido 20l. Blanc P. 13%"],["GB20N13X","Bido 20l. Negre 13%"],["GB20N14X","Bido 20l. Negre 14%"]],
+  "Garrafa 4L (V04)":[["GV04B11X","Garrafa 4l. Blanc Pal-lid 11%"],["GV04B12C","Garrafa 4l. Blanc C. 12%"],["GV04B13C","Garrafa 4l. Blanc C. 13%"],["GV04B14X","Garrafa 4l. Blanc 14%"],["GV04N11X","Garrafa 4l. Negre 11%"],["GV04N13X","Garrafa 4l. Negre 13%"],["GV04N14X","Garrafa 4l. Negre 14%"],["GV04NCS","Garrafa 4l. Cabernet Sauvignon"],["GV04R11X","Garrafa 4l. Rosat 11%"],["GV04R12X","Garrafa 4l. Rosat 12%"],["GV04R13X","Garrafa 4l. Rosat 13%"],["GVMCT04","Garrafa 4l. Moscatell Alexandria"]],
+  "PET 2L":[["GP02B13C","PET 2l. Blanc C. 13%"],["GP02N13X","PET 2l. Negre 13%"],["GP02N14X","PET 2l. Negre 14%"],["GVMCT02","PET 2l. Moscatell Alexandria"],["GAROMV02","PET 2l. Vi aromatitzat V."],["GAROMR02","PET 2l. Vi aromatitzat R."]],
+  "PET 5L":[["GP05B11X","PET 5l. Blanc Pal-lid 11%"],["GP05B13C","PET 5l. Blanc C. 13%"],["GP05B13X","PET 5l. Blanc Pal-lid 13%"],["GP05N11X","PET 5l. Negre 11%"],["GP05N13X","PET 5l. Negre 13%"],["GP05N14X","PET 5l. Negre 14%"],["GP05R11X","PET 5l. Rosat 11%"],["GP050023","PET 5l. Negre SC 14.9% Marcet"],["GVMCT05","PET 5l. Moscatell Alexandria"]],
+  "Caixa 6 bot.":[["GC750B12XTR","C/6 Blanc 12%"],["GC750NCS","C/6 Cabernet Sauvignon Brugal"],["GC750NS","C/6 Sirah Brugal"],["GC750R12XTR","C/6 Rosat 12%"],["GC750R13S","C/6 Rosat 13% Seleccio Brugal"],["GC750VERDEJO","C/6 Verdejo"],["GBK101621","C/6 Cava Elementum Brut Nature"],["GBK812816","C/6 Cava Raventos Brut Nature"]],
+  "Caixa 12 bot.":[["GC12750B11XTR","C/12 Blanc 11% T.R."],["GC12750B13X","C/12 Blanc 13% T.E."],["GC12750N11XTR","C/12 Negre 11% Tap Rosca"],["GC12750N12XTR","C/12 Negre 12% Tap Rosca"],["GC12750N13X","C/12 Negre 13% T.E."],["GC12750N14X","C/12 Negre 14% T.E."],["GC12750R13X","C/12 Rosat 13% T.E."],["GC12B13XCGTE","C/12 El Cargol Blanc 13% T.E."],["GC12N13XCGTE","C/12 El Cargol Negre 13% T.E."],["GC12R13XCGTE","C/12 El Cargol Rosat 13% T.E."],["GBK101001","C/12 Hortivinya Blanc 12% T.R."],["GBK101002","C/12 Hortivinya Rosat 12% T.R."],["GBK101003","C/12 Hortivinya Negre 12% T.R."]],
+  "Caixa 24 bot.":[["GBK100051","C/24 Hortivinya Blanc 12% 37.5cl"],["GBK100052","C/24 Hortivinya Rosat 12% 37.5cl"],["GBK100053","C/24 Hortivinya Negre 12% 37.5cl"],["GBK101431","C/24 El Cargol Blanc 13% T.E."],["GBK101432","C/24 El Cargol Rosat 13% T.E."],["GBK101433","C/24 El Cargol Negre 13% T.E."]],
+  "Vermut / Licors":[["GAX7","Vermut Iris 1L Negre"],["GV040036","Garrafa 4l. Vermut 16%"],["GRATAFIA03","Garf. 3L Ratafia La Segarra"],["GBK294025","Garf. 3L Licor de Herbes 30%"],["GBK294027","Garf. 3L Licor Limoncino 25%"],["GBK294028","Garf. 3L Licor Crema Orujo 17%"],["GBK294029","Garf. 3L Licor de Cafe 20%"]],
+  "Vinagre / Altres":[["G180","Vinagre Blanc 5L"],["GCVINAGREB","C/6 Vinagre Blanc Badia"],["GCVINAGRER","C/6 Vinagre Rosat Badia"],["GAGA3","Gasosa La Casa 12x50cl"],["G000R","Caixa 8 Sifons"]]
+};
+
+const refs=[];
+Object.entries(CATS).forEach(([cat,items])=>items.forEach(([codi,desc])=>refs.push({cat,codi,desc})));
+
+let stock={};
+refs.forEach(r=>{stock[r.codi]={qty:0,min:5};});
+
+const pF={}, vF={};
+refs.forEach(r=>{pF[r.codi]={qty:'',lot:'',obs:''};vF[r.codi]={qty:'',obs:''};});
+
+const aC={p:'Tots',v:'Tots',s:'Tots'}, sT={p:'',v:'',s:''};
+
+function today(){return new Date().toISOString().split('T')[0];}
+function fd(d){if(!d)return'';const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}
+function setSyncStatus(state, msg){
+  const dot=document.getElementById('sync-dot');
+  const txt=document.getElementById('sync-msg');
+  dot.className='sync-dot'+(state==='ok'?'':state==='spin'?' spin':' off');
+  txt.textContent=msg;
+}
+
+document.getElementById('p-data').value=today();
+document.getElementById('v-data').value=today();
+
+// Escolta canvis en temps real de Firebase
+onSnapshot(STOCK_DOC, (snap) => {
+  if(snap.exists()){
+    const data=snap.data();
+    refs.forEach(r=>{
+      if(data[r.codi]){
+        stock[r.codi]={
+          qty: data[r.codi].qty ?? 0,
+          min: data[r.codi].min ?? 5
+        };
+      }
+    });
+  } else {
+    // Document no existeix, el creem amb tot a 0
+    const init={};
+    refs.forEach(r=>{init[r.codi]={qty:0,min:5};});
+    setDoc(STOCK_DOC, init);
+  }
+  setSyncStatus('ok','Connectat — stock sincronitzat en temps real');
+  document.getElementById('btn-apply-p').disabled=false;
+  document.getElementById('btn-apply-v').disabled=false;
+  const activeTab=document.querySelector('.tab-content.active');
+  if(activeTab && activeTab.id==='tab-stock') rS();
+  else if(activeTab && activeTab.id==='tab-ven') rF('v');
+}, (err)=>{
+  setSyncStatus('off','Error de connexio. Comprova la connexio a internet.');
+  document.getElementById('btn-apply-p').disabled=true;
+  document.getElementById('btn-apply-v').disabled=true;
+});
+
+window.sw=function(tab){
+  ['prod','ven','stock','prod2'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+    const b=document.getElementById('btn-'+t);
+    const cls=t==='prod'?'ap':t==='ven'?'av':t==='stock'?'as':'ag';
+    b.className='tab-btn'+(t===tab?' '+cls:'');
+  });
+  if(tab==='stock') rS();
+  else if(tab==='ven') rF('v');
+  else if(tab==='prod') rF('p');
+  else if(tab==='prod2') rGP();
+};
+
+function bTabs(px){
+  const tb=document.getElementById(`${px}-ct`);tb.innerHTML='';
+  const form=px==='p'?pF:px==='v'?vF:null;
+  ['Tots',...Object.keys(CATS)].forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='cat-tab'+(c===aC[px]?' active':'');
+    let cnt=0;
+    if(form){cnt=c==='Tots'?Object.values(form).filter(s=>s.qty&&s.qty!=='0').length:(CATS[c]||[]).filter(([codi])=>form[codi]&&form[codi].qty&&form[codi].qty!=='0').length;}
+    btn.innerHTML=c+(cnt>0?`<span class="bdg">${cnt}</span>`:'');
+    btn.onclick=()=>{aC[px]=c;px==='s'?rS():rF(px);};
+    tb.appendChild(btn);
+  });
+}
+
+function rF(px){
+  bTabs(px);
+  const form=px==='p'?pF:vF;
+  const tb=document.getElementById(`${px}-tb`);tb.innerHTML='';
+  const list=aC[px]==='Tots'?refs:refs.filter(r=>r.cat===aC[px]);
+  const st=sT[px];
+  const fil=list.filter(r=>!st||r.codi.toLowerCase().includes(st)||r.desc.toLowerCase().includes(st));
+  document.getElementById(`${px}-em`).style.display=fil.length===0?'':'none';
+  fil.forEach((r,i)=>{
+    const f=form[r.codi];
+    const sq=stock[r.codi]||{qty:0,min:5};
+    const tr=document.createElement('tr');
+    const qc=sq.qty<=0?'#C53030':sq.qty<=sq.min?'#B7791F':'#2E5D3B';
+    if(px==='p'){
+      tr.innerHTML=`<td style="color:#888;font-size:11px;text-align:center">${i+1}</td><td class="codi">${r.codi}</td><td class="desc" title="${r.desc}">${r.desc}</td><td><input type="number" min="0" class="qty-input${f.qty?' filled':''}" data-codi="${r.codi}" value="${f.qty}" placeholder="0"></td><td><input type="text" class="lot-input" data-codi="${r.codi}" data-field="lot" value="${f.lot||''}" placeholder="Lot"></td><td><input type="text" class="obs-input" data-codi="${r.codi}" data-field="obs" value="${f.obs||''}" placeholder="--"></td>`;
+    } else {
+      tr.innerHTML=`<td style="color:#888;font-size:11px;text-align:center">${i+1}</td><td class="codi">${r.codi}</td><td class="desc" title="${r.desc}">${r.desc}</td><td><input type="number" min="0" class="qty-input${f.qty?' filled':''}" data-codi="${r.codi}" value="${f.qty}" placeholder="0"></td><td><input type="text" class="obs-input" data-codi="${r.codi}" data-field="obs" value="${f.obs||''}" placeholder="--"></td><td style="text-align:center;font-weight:500;color:${qc}">${sq.qty}</td>`;
+    }
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('.qty-input').forEach(inp=>{
+    inp.addEventListener('input',e=>{
+      form[e.target.dataset.codi].qty=e.target.value;
+      e.target.classList.toggle('filled',!!e.target.value&&e.target.value!=='0');
+      uSt(px);
+    });
+  });
+  tb.querySelectorAll('.lot-input,.obs-input').forEach(inp=>{inp.addEventListener('input',e=>{form[e.target.dataset.codi][e.target.dataset.field]=e.target.value;});});
+  uSt(px);
+}
+
+function uSt(px){
+  const form=px==='p'?pF:vF;
+  const fil=Object.values(form).filter(s=>s.qty&&s.qty!=='0');
+  document.getElementById(`${px}-sl`).textContent=fil.length;
+  document.getElementById(`${px}-su`).textContent=Math.round(fil.reduce((a,s)=>a+(parseFloat(s.qty)||0),0));
+}
+
+window.clr=function(px){
+  const form=px==='p'?pF:vF;
+  Object.keys(form).forEach(k=>{form[k]={qty:'',lot:'',obs:''};});
+  rF(px);
+};
+
+window.apply=async function(px){
+  const form=px==='p'?pF:vF;
+  const btn=document.getElementById(`btn-apply-${px}`);
+  btn.disabled=true;
+  btn.textContent='Guardant...';
+  setSyncStatus('spin','Actualitzant stock al servidor...');
+  try {
+    await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(STOCK_DOC);
+      const current = snap.exists() ? snap.data() : {};
+      const updates={};
+      refs.forEach(r=>{
+        const qty=parseFloat(form[r.codi].qty)||0;
+        if(qty>0){
+          const cur=current[r.codi]||{qty:0,min:5};
+          if(px==='p'){
+            updates[r.codi]={qty:(cur.qty||0)+qty, min:cur.min??5};
+          } else {
+            if((cur.qty||0)>0){
+              updates[r.codi]={qty:Math.max(0,(cur.qty||0)-qty), min:cur.min??5};
+            }
+          }
+        }
+      });
+      if(Object.keys(updates).length>0){
+        transaction.set(STOCK_DOC, {...current,...updates});
+      }
+    });
+    clr(px);
+    setSyncStatus('ok','Stock actualitzat i sincronitzat!');
+  } catch(e){
+    setSyncStatus('off','Error en guardar. Torna-ho a provar.');
+    alert('Error en guardar al servidor: '+e.message);
+  }
+  btn.disabled=false;
+  btn.textContent=px==='p'?'Aplicar al stock':'Aplicar al stock';
+};
+
+function expForm(px){
+  const form=px==='p'?pF:vF;
+  const dat=document.getElementById(`${px}-data`).value;
+  let lines,ch;
+  if(px==='p'){
+    const or=document.getElementById('p-ordre').value||'-';
+    const re=document.getElementById('p-resp').value||'-';
+    lines=['Full de Produccio Aregall',`Data:;${fd(dat)};No Ordre:;${or};Responsable:;${re}`,'','Codi;Descripcio;Categoria;Quantitat Produida;Lot;Observacions'];
+    ch=(r,f)=>`${r.codi};${r.desc};${r.cat};${f.qty};${f.lot||''};${f.obs||''}`;
+  } else {
+    const al=document.getElementById('v-albara').value||'-';
+    const cl=document.getElementById('v-client').value||'-';
+    const co=document.getElementById('v-comercial').value||'-';
+    lines=['Registre de Vendes Aregall',`Data:;${fd(dat)};No Albara:;${al};Client:;${cl};Comercial:;${co}`,'','Codi;Descripcio;Categoria;Quantitat Venuda;Observacions'];
+    ch=(r,f)=>`${r.codi};${r.desc};${r.cat};${f.qty};${f.obs||''}`;
+  }
+  let tot=0;
+  refs.forEach(r=>{const f=form[r.codi];if(f.qty&&f.qty!=='0'){lines.push(ch(r,f));tot+=parseFloat(f.qty)||0;}});
+  lines.push('',`Total unitats:;${Math.round(tot)}`);
+  dl(lines.join('\n'),px==='p'?`produccio_aregall_${dat}.csv`:`vendes_aregall_${dat}.csv`);
+}
+
+function getS(qty,min){
+  if(qty===0)return{t:'Sense estoc',p:'pz',rc:'rz'};
+  if(qty<=min)return{t:'Critic',p:'pd',rc:'rd'};
+  if(qty<=min*1.5)return{t:'Stock baix',p:'pw',rc:'rw'};
+  return{t:'OK',p:'pk',rc:''};
+}
+
+function rS(){
+  bTabs('s');
+  const st=sT.s;
+  const list=aC.s==='Tots'?refs:refs.filter(r=>r.cat===aC.s);
+  const fil=list.filter(r=>!st||r.codi.toLowerCase().includes(st)||r.desc.toLowerCase().includes(st));
+  document.getElementById('s-em').style.display=fil.length===0?'':'none';
+  const tb=document.getElementById('s-tb');tb.innerHTML='';
+  fil.forEach((r,i)=>{
+    const s=stock[r.codi]||{qty:0,min:5};
+    const g=getS(s.qty,s.min);
+    const tr=document.createElement('tr');
+    if(g.rc)tr.className=g.rc;
+    tr.innerHTML=`<td style="color:#888;font-size:11px;text-align:center">${i+1}</td><td class="codi">${r.codi}</td><td class="desc" title="${r.desc}">${r.desc}</td><td><input type="number" min="0" class="si" data-codi="${r.codi}" data-f="min" value="${s.min}"></td><td><input type="number" min="0" class="si" style="width:70px" data-codi="${r.codi}" data-f="qty" value="${s.qty}"></td><td><span class="pill ${g.p}">${g.t}</span></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('.si').forEach(inp=>{
+    inp.addEventListener('change',async e=>{
+      const c=e.target.dataset.codi,f=e.target.dataset.f;
+      const val=Math.max(0,parseFloat(e.target.value)||0);
+      setSyncStatus('spin','Guardant...');
+      try{
+        await runTransaction(db,async(tx)=>{
+          const snap=await tx.get(STOCK_DOC);
+          const cur=snap.exists()?snap.data():{};
+          const item=cur[c]||{qty:0,min:5};
+          item[f]=val;
+          tx.set(STOCK_DOC,{...cur,[c]:item});
+        });
+        setSyncStatus('ok','Stock actualitzat!');
+      }catch(e){setSyncStatus('off','Error en guardar.');}
+    });
+  });
+
+  const tot=refs.length;
+  const zero=refs.filter(r=>(stock[r.codi]||{qty:0}).qty===0).length;
+  const crit=refs.filter(r=>{const s=stock[r.codi]||{qty:0,min:5};return s.qty>0&&s.qty<=s.min;}).length;
+  const baix=refs.filter(r=>{const s=stock[r.codi]||{qty:0,min:5};return s.qty>s.min&&s.qty<=s.min*1.5;}).length;
+  const ok=refs.filter(r=>{const s=stock[r.codi]||{qty:0,min:5};return s.qty>s.min*1.5;}).length;
+  document.getElementById('s-sum').innerHTML=`
+    <div class="sc"><b>${tot}</b>Total refs.</div>
+    <div class="sc ok"><b>${ok}</b>Stock OK</div>
+    <div class="sc wn"><b>${baix}</b>Stock baix</div>
+    <div class="sc dg"><b>${crit}</b>Critic</div>
+    <div class="sc dg"><b>${zero}</b>Sense estoc</div>`;
+}
+
+window.rst=async function(){
+  if(!confirm('Segur que vols reiniciar tot el stock a 0?'))return;
+  setSyncStatus('spin','Reiniciant...');
+  const init={};
+  refs.forEach(r=>{init[r.codi]={qty:0,min:5};});
+  try{
+    await setDoc(STOCK_DOC,init);
+    setSyncStatus('ok','Stock reiniciat a 0.');
+  }catch(e){setSyncStatus('off','Error en reiniciar.');}
+};
+
+window.expStock=function(){
+  const lines=["Control d'Estoc Aregall",`Exportat: ${fd(today())}`,'','Codi;Descripcio;Categoria;Stock Minim;Stock Actual;Estat'];
+  refs.forEach(r=>{const s=stock[r.codi]||{qty:0,min:5};lines.push(`${r.codi};${r.desc};${r.cat};${s.min};${s.qty};${getS(s.qty,s.min).t}`);});
+  dl(lines.join('\n'),`stock_aregall_${today()}.csv`);
+};
+
+function dl(content,filename){
+  const blob=new Blob(['\uFEFF'+content],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── GESTIO PRODUCTES ──────────────────────────────────────────────────────
+const CATS_DOC = doc(db, "aregall", "categories");
+let customRefs = []; // refs carregades de Firebase (productes personalitzats)
+let allCats = [...Object.keys(CATS)];
+
+// Carrega productes personalitzats de Firebase
+const CUSTOM_DOC = doc(db, "aregall", "customProducts");
+onSnapshot(CUSTOM_DOC, (snap) => {
+  customRefs = [];
+  if(snap.exists()){
+    const data = snap.data();
+    Object.entries(data).forEach(([codi, info]) => {
+      customRefs.push({codi, desc: info.desc, cat: info.cat, custom: true});
+    });
+  }
+  rebuildRefs();
+  if(document.getElementById('tab-prod2').classList.contains('active')) rGP();
+});
+
+function rebuildRefs(){
+  // Combina refs base + customRefs (evita duplicats per codi)
+  const baseCodis = new Set(refs.map(r=>r.codi));
+  const combined = [...refs, ...customRefs.filter(r=>!baseCodis.has(r.codi))];
+  // Actualitza pF i vF per nous productes
+  combined.forEach(r=>{
+    if(!pF[r.codi]) pF[r.codi]={qty:'',lot:'',obs:''};
+    if(!vF[r.codi]) vF[r.codi]={qty:'',obs:''};
+    if(!stock[r.codi]) stock[r.codi]={qty:0,min:5};
+  });
+}
+
+function getAllRefs(){
+  const baseCodis = new Set(refs.map(r=>r.codi));
+  return [...refs, ...customRefs.filter(r=>!baseCodis.has(r.codi))];
+}
+
+function populateCatSelects(){
+  const cats = [...Object.keys(CATS), ...customRefs.map(r=>r.cat).filter(c=>!Object.keys(CATS).includes(c))];
+  const unique = [...new Set(cats)];
+
+  const sel = document.getElementById('np-cat');
+  sel.innerHTML = unique.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  const fsel = document.getElementById('gp-cat-filter');
+  fsel.innerHTML = '<option value="">Totes les categories</option>' + unique.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function rGP(){
+  populateCatSelects();
+  const srch = document.getElementById('gp-srch').value.toLowerCase();
+  const catF = document.getElementById('gp-cat-filter').value;
+  const all = getAllRefs();
+  const fil = all.filter(r =>
+    (!srch || r.codi.toLowerCase().includes(srch) || r.desc.toLowerCase().includes(srch)) &&
+    (!catF || r.cat === catF)
+  );
+  document.getElementById('gp-total').textContent = all.length;
+  document.getElementById('gp-em').style.display = fil.length===0?'':'none';
+  const tb = document.getElementById('gp-tb');
+  tb.innerHTML = '';
+  fil.forEach((r,i)=>{
+    const s = stock[r.codi]||{qty:0};
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono">${r.codi}${r.custom?'<br><span style="font-size:9px;color:#1E40AF">personalitzat</span>':''}</td>
+      <td><input class="gp-edit-input" data-codi="${r.codi}" data-field="desc" value="${r.desc}" ${r.custom?'':'readonly style="background:#f5f5f5;border-color:#ddd;color:#999"'}></td>
+      <td><span class="cat-badge">${r.cat}</span></td>
+      <td style="text-align:center;font-weight:500;color:${s.qty<=0?'#C53030':s.qty<=5?'#B7791F':'#2E5D3B'}">${s.qty}</td>
+      <td style="text-align:center">${r.custom?`<button class="btn-save-row" onclick="saveProduct('${r.codi}')">Desar</button> <button class="btn-del" onclick="delProduct('${r.codi}')">Eliminar</button>`:'<span style="font-size:10px;color:#aaa">Base</span>'}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+window.addProduct = async function(){
+  const codi = document.getElementById('np-codi').value.trim().toUpperCase();
+  const desc = document.getElementById('np-desc').value.trim();
+  const cat  = document.getElementById('np-cat').value;
+  const msg  = document.getElementById('np-msg');
+
+  if(!codi){msg.style.color='#C53030';msg.textContent='El codi és obligatori.';return;}
+  if(!desc){msg.style.color='#C53030';msg.textContent='La descripció és obligatòria.';return;}
+
+  const all = getAllRefs();
+  if(all.find(r=>r.codi===codi)){msg.style.color='#C53030';msg.textContent='Aquest codi ja existeix.';return;}
+
+  msg.style.color='#666';msg.textContent='Guardant...';
+  try{
+    await runTransaction(db, async(tx)=>{
+      const snap = await tx.get(CUSTOM_DOC);
+      const cur = snap.exists()?snap.data():{};
+      tx.set(CUSTOM_DOC, {...cur, [codi]:{desc, cat}});
+    });
+    // Afegir stock inicial
+    await runTransaction(db, async(tx)=>{
+      const snap = await tx.get(STOCK_DOC);
+      const cur = snap.exists()?snap.data():{};
+      if(!cur[codi]) tx.set(STOCK_DOC, {...cur, [codi]:{qty:0,min:5}});
+    });
+    document.getElementById('np-codi').value='';
+    document.getElementById('np-desc').value='';
+    msg.style.color='#2E5D3B';msg.textContent=`Producte "${codi}" afegit correctament!`;
+    setTimeout(()=>{msg.textContent='';},3000);
+  }catch(e){msg.style.color='#C53030';msg.textContent='Error en guardar: '+e.message;}
+};
+
+window.saveProduct = async function(codi){
+  const input = document.querySelector(`.gp-edit-input[data-codi="${codi}"]`);
+  if(!input) return;
+  const newDesc = input.value.trim();
+  if(!newDesc){alert('La descripció no pot estar buida.');return;}
+  const msg = document.getElementById('gp-sync-msg');
+  msg.textContent='Guardant...';
+  try{
+    await runTransaction(db, async(tx)=>{
+      const snap = await tx.get(CUSTOM_DOC);
+      const cur = snap.exists()?snap.data():{};
+      const item = cur[codi]||{};
+      item.desc = newDesc;
+      tx.set(CUSTOM_DOC, {...cur, [codi]:item});
+    });
+    msg.textContent='Desat correctament!';
+    setTimeout(()=>{msg.textContent='';},2000);
+  }catch(e){msg.textContent='Error: '+e.message;}
+};
+
+window.delProduct = async function(codi){
+  if(!confirm(`Eliminar el producte "${codi}"?\n\nAixo elimina el producte de la llista pero no el seu historial de stock.`)) return;
+  const msg = document.getElementById('gp-sync-msg');
+  msg.textContent='Eliminant...';
+  try{
+    await runTransaction(db, async(tx)=>{
+      const snap = await tx.get(CUSTOM_DOC);
+      const cur = snap.exists()?snap.data():{};
+      delete cur[codi];
+      tx.set(CUSTOM_DOC, cur);
+    });
+    msg.textContent='Producte eliminat.';
+    setTimeout(()=>{msg.textContent='';},2000);
+  }catch(e){msg.textContent='Error: '+e.message;}
+};
+
+document.getElementById('gp-srch').addEventListener('input', rGP);
+document.getElementById('gp-cat-filter').addEventListener('change', rGP);
+// ── FI GESTIO PRODUCTES ───────────────────────────────────────────────────
+
+document.getElementById('p-srch').addEventListener('input',e=>{sT.p=e.target.value.toLowerCase();rF('p');});
+document.getElementById('v-srch').addEventListener('input',e=>{sT.v=e.target.value.toLowerCase();rF('v');});
+document.getElementById('s-srch').addEventListener('input',e=>{sT.s=e.target.value.toLowerCase();rS();});
+
+rF('p');rF('v');
+</script>
+</body>
+</html>
